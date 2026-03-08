@@ -14,3 +14,10 @@ In file included from /Users/priyanshu/SOFIE/src/SOFIE_parsers/src/ParseBasicBin
 This warning was present for multiple operators
 
 The `override` keyword can be a good improvement here wherever we are overriding a base class function with an alpaka kernel as it will tell the compiler to explicitly throw an error if there is a typo or if the signature does not match
+
+## AI Usage
+All the text in this observation file has been written by me.
+
+AI was used in understanding the syntax and some C++ features I was unfamiliar with prior
+
+AI was used in setting up .clangd and compile_commands.json to help me navigate the codebase more easily
