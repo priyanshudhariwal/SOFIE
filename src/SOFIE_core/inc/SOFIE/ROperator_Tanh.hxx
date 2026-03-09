@@ -67,6 +67,21 @@ public:
       return SP + "TanhKernel tanhKernel;\n";
    }
 
+   std::string Generate_GPU_Kernel_ALPAKA(std::string /*operator name*/) override {
+      std::string op;
+      op = "\b// -------- TANH_KERNEL_ALPAKA\n";
+      op += "struct TanhKernel {\n";
+      op += SP + "template<typename TAcc, typename T>\n";
+      op += SP + "ALPAKA_FN_ACC void operator()(TAcc const& acc, T const* __restrict__ data, T* __restrict__ out, std::size_t numElemets) const {\n";
+      op += SP + SP + "const auto idx = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0];\n";
+      op += SP + SP + "if(idx < numElements) {\n";
+      op += SP + SP + SP + SP + "out[idx] = tanh(data[idx]);\n";
+      op += SP + SP + SP + "}\n";
+      op += SP + SP + "}\n";
+      op += SP + "};\n";
+      return op;
+   }
+
    std::vector<std::string> GetStdLibs() override { return { std::string("cmath") };}
 };
 
