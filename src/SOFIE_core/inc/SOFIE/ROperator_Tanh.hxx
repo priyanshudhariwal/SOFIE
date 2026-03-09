@@ -69,10 +69,10 @@ public:
 
    std::string Generate_GPU_Kernel_ALPAKA(std::string /*operator name*/) override {
       std::string op;
-      op = "\b// -------- TANH_KERNEL_ALPAKA\n";
+      op = "\n// -------- TANH_KERNEL_ALPAKA\n";
       op += "struct TanhKernel {\n";
       op += SP + "template<typename TAcc, typename T>\n";
-      op += SP + "ALPAKA_FN_ACC void operator()(TAcc const& acc, T const* __restrict__ data, T* __restrict__ out, std::size_t numElemets) const {\n";
+      op += SP + "ALPAKA_FN_ACC void operator()(TAcc const& acc, T const* __restrict__ data, T* __restrict__ out, std::size_t numElements) const {\n";
       op += SP + SP + "const auto idx = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0];\n";
       op += SP + SP + "if(idx < numElements) {\n";
       op += SP + SP + SP + SP + "out[idx] = tanh(data[idx]);\n";
@@ -80,6 +80,27 @@ public:
       op += SP + SP + "}\n";
       op += SP + "};\n";
       return op;
+   }
+
+   std::string Generate_GPU_ALPAKA(std::string OpName) override {
+      OpName = "op_" + OpName;
+      if (fShape.empty()) {
+         throw std::runtime_error("TMVA SOFIE Operator Tanh called to Generate without being initialized first");
+      }
+
+      std::stringstream out;
+      auto length = ConvertShapeToLength(fShape) ;
+      out << "\n//------- TANH_GPU_ALPAKA\n";
+      out << SP << "auto const elementsPerThread_"<<fNX<<" = Vec::all(static_cast<Idx>(1));\n";
+      out << SP << "auto const elementsPerGrid_"<<fNX<<" = Vec::all(Idx{" << length << "});\n";
+      out << SP << "alpaka::KernelCfg<Acc> const kernelCfg_" << fNX << " = {elementsPerGrid_" << fNX << ", elementsPerThread_" << fNX << "};\n";
+      out << SP << "auto const workDiv_" << fNX << " = alpaka::getValidWorkDic(kernelCfg_" << fNX << ", devAcc, tanhKernel, alpaka::getPtrNative(deviceBuf_" << fNX
+         << "), alpaka::getPtrNative(deviceBuf_" << fNY
+         << "), static_cast<Idx>(" << length << "));\n";
+      out << SP << "alpaka::exec<Acc>(queue, workDiv_" << fNX
+         << ", tanhKernel, alpaka::getPtrNative(deviceBuf_" << fNX
+         << "), alpaka::getPtrNative(deviceBuf_" << fNY << "), static_cast<Idx>(" << length << "));\n";
+      return out.str();
    }
 
    std::vector<std::string> GetStdLibs() override { return { std::string("cmath") };}
