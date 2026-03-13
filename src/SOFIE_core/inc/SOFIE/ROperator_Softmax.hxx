@@ -185,7 +185,7 @@ public:
    }
 
    std::string Generate_GPU_Kernel_Definitions_ALPAKA(std::string /*operator_name*/) override {
-      return SP + "SoftmaxKernel softmaxKernel";
+      return SP + "SoftmaxKernel softmaxKernel\n";
    }
 };
 
