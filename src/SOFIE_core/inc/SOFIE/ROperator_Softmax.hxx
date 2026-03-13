@@ -6,6 +6,7 @@
 #include "SOFIE/RModel.hxx"
 
 #include <sstream>
+#include <string>
 
 namespace SOFIE {
 
@@ -181,6 +182,10 @@ public:
          }
       }
       return out.str();
+   }
+
+   std::string Generate_GPU_Kernel_Definitions_ALPAKA(std::string /*operator_name*/) override {
+      return SP + "SoftmaxKernel softmaxKernel";
    }
 };
 
