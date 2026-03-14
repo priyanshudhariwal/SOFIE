@@ -10,6 +10,9 @@
 #include "LinearWithLeakyRelu_FromONNX_GPU_ALPAKA.hxx"
 #include "input_models/references/LinearWithLeakyRelu.ref.hxx"
 
+#include "Tanh_FromONNX_GPU_ALPAKA.hxx"
+#include "input_models/references/Tanh.ref.hxx"
+
 #include "LinearWithSigmoid_FromONNX_GPU_ALPAKA.hxx"
 #include "input_models/references/LinearWithSigmoid.ref.hxx"
 
@@ -137,6 +140,57 @@ TEST_F(SofieAlpakaTest, LinearWithLeakyRelu)
    for (size_t i = 0; i < 24; ++i) {
       EXPECT_LE(std::abs(res_ptr[i] - correct[i]), TOLERANCE);
    }
+}
+
+TEST_F(SofieAlpakaTest, Tanh)
+{
+   constexpr float TOLERANCE = DEFAULT_TOLERANCE;
+
+   //preparing the input (same inputs as CPU test)
+   std::vector<float> input({
+      -0.3896, -0.3521,  0.0363,  1.0962,  0.5085, -0.8523, -0.6766,  0.2421,
+      1.5971,  1.3873, -0.2112, -0.6895, -0.5069, -2.1395, -0.7087,  1.1658,
+      1.3493,  0.8132,  1.7156, -0.8637, -0.1971,  0.0411, -0.5662, -0.2516
+   });
+
+   // allocating host buffer
+   auto A = alpaka::allocBuf<float, Idx>(device, Ext1D::all(Idx{input.size()}));
+   float *A_ptr = reinterpret_cast<float*>(alpaka::getPtrNative(A));
+
+   // copying input data to host buffer
+   for(Idx i = 0; i < input.size(); i++) {
+      A_ptr[i] = input[i];
+   }
+
+   // allocating device buffer
+   auto A_d = alpaka::allocBuf<float, Idx>(device, Ext1D::all(Idx{input.size()}));
+   // copying from host to device and waiting
+   alpaka::memcpy(queue, A_d, A);
+   alpaka::wait(queue);
+
+   // allocating output buffer on host
+   auto result_h = alpaka::allocBuf<float, Idx>(host, Ext1D::all(Idx{input.size()}));
+
+   // run the test on the device
+   {
+      SOFIE_Tanh::Session<alpaka::TagGpuCudaRt> session;
+      auto result = session.infer(A_d);
+      alpaka::wait(queue);
+      cudaDeviceSynchronize();
+
+      alpaka::memcpy(queue, result_h, result);
+      alpaka::wait(queue);
+   }
+
+   // get test results and expected outputs
+   float *res_ptr = reinterpret_cast<float*>(alpaka::getPtrNative(result_h));
+   float *correct = Tanh_ExpectedOutput::outputs;
+
+   // test result verification
+   for (size_t i = 0; i < 24; ++i) {
+      EXPECT_LE(std::abs(res_ptr[i] - correct[i]), TOLERANCE);
+   }
+
 }
 
 TEST_F(SofieAlpakaTest, LinearWithSigmoid)

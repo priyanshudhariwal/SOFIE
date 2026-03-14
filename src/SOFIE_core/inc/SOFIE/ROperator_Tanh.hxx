@@ -94,7 +94,7 @@ public:
       out << SP << "auto const elementsPerThread_"<<fNX<<" = Vec::all(static_cast<Idx>(1));\n";
       out << SP << "auto const elementsPerGrid_"<<fNX<<" = Vec::all(Idx{" << length << "});\n";
       out << SP << "alpaka::KernelCfg<Acc> const kernelCfg_" << fNX << " = {elementsPerGrid_" << fNX << ", elementsPerThread_" << fNX << "};\n";
-      out << SP << "auto const workDiv_" << fNX << " = alpaka::getValidWorkDic(kernelCfg_" << fNX << ", devAcc, tanhKernel, alpaka::getPtrNative(deviceBuf_" << fNX
+      out << SP << "auto const workDiv_" << fNX << " = alpaka::getValidWorkDiv(kernelCfg_" << fNX << ", devAcc, tanhKernel, alpaka::getPtrNative(deviceBuf_" << fNX
          << "), alpaka::getPtrNative(deviceBuf_" << fNY
          << "), static_cast<Idx>(" << length << "));\n";
       out << SP << "alpaka::exec<Acc>(queue, workDiv_" << fNX
