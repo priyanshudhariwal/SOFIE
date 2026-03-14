@@ -289,6 +289,23 @@ public:
       return out.str();
    }
 
+   std::string Generate_GPU_Kernel_ALPAKA(std::string /*opName*/) override {
+      std::string op;
+      op = "\n//--------- WHERE_KERNEL_ALPAKA\n";
+      op += "struct WhereKernel {\n";
+      op += SP + "template<typename TAcc, typename T>\n";
+      op += SP + SP + "ALPAKA_FN_ACC void operator()(TAcc const& acc, "
+      "T const* A, T const* B, std::uint8_t const* C, T* Y,"
+      "std::size_t numElements) const {\n";
+      op += SP + SP + SP + "auto idx = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0];\n";
+      op += SP + SP + SP + "if (idx < numElements) {\n";
+      op += SP + SP + SP + SP + "Y[idx] = C[idx] ? A[idx] : B[idx];\n";
+      op += SP + SP + SP + "}\n";
+      op += SP + SP + "}\n";
+      op += SP + "};\n";
+      return op;
+   }
+
    std::string Generate_GPU_Kernel_Definitions_ALPAKA(std::string /*operator name*/) override {
       return SP + "WhereKernel whereKernel;\n";
    }
@@ -308,10 +325,10 @@ public:
       out << SP << "auto const elementsPerGrid_"<<fNY<<" = Vec::all(Idx{"<< length << "});\n";
       out << SP << "alpaka::KernelCfg<Acc> const kernelCfg_" << fNY << " = {elementsPerGrid_" << fNY << ", elementsPerThread_" << fNY << "};\n";
       out << SP << "auto const workDiv_" << fNY << " = alpaka::getValidWorkDiv(kernelCfg_" << fNY << ", devAcc, whereKernel, alpaka::getPtrNative(deviceBuf_" << fNA
-         << "), alpaka::getPtrNative(deviceBuf_" << fNB << "), alpaka::getPtrNative(deviceBuf_"<< fNC << "), alpaka::getPtrNative(deviceBuf_" << fNY << "));\n";
+         << "), alpaka::getPtrNative(deviceBuf_" << fNB << "), alpaka::getPtrNative(deviceBuf_"<< fNC << "), alpaka::getPtrNative(deviceBuf_" << fNY << "), static_cast<Idx>(" << length << "));\n";
       out << SP << "alpaka::exec<Acc>(queue, workDiv_" << fNY
          << ", whereKernel, alpaka::getPtrNative(deviceBuf_" << fNA
-         << "), alpaka::getPtrNative(deviceBuf_" << fNB << "), alpaka::getPtrNative(deviceBuf_" << fNC << "), alpaka::getPtrNative(deviceBuf_" << fNY << "));\n";
+         << "), alpaka::getPtrNative(deviceBuf_" << fNB << "), alpaka::getPtrNative(deviceBuf_" << fNC << "), alpaka::getPtrNative(deviceBuf_" << fNY << "), static_cast<Idx>(" << length << "));\n";
       return out.str();
    }
 
