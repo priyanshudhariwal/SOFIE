@@ -13,6 +13,8 @@
 #include "Tanh_FromONNX_GPU_ALPAKA.hxx"
 #include "input_models/references/Tanh.ref.hxx"
 
+#include "Where_FromONNX_GPU_ALPAKA.hxx"
+
 #include "LinearWithSigmoid_FromONNX_GPU_ALPAKA.hxx"
 #include "input_models/references/LinearWithSigmoid.ref.hxx"
 
