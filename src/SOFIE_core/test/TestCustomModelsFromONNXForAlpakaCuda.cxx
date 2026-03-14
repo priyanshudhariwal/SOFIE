@@ -154,7 +154,7 @@ TEST_F(SofieAlpakaTest, Tanh)
    });
 
    // allocating host buffer
-   auto A = alpaka::allocBuf<float, Idx>(device, Ext1D::all(Idx{input.size()}));
+   auto A = alpaka::allocBuf<float, Idx>(host, Ext1D::all(Idx{input.size()}));
    float *A_ptr = reinterpret_cast<float*>(alpaka::getPtrNative(A));
 
    // copying input data to host buffer
@@ -191,6 +191,56 @@ TEST_F(SofieAlpakaTest, Tanh)
       EXPECT_LE(std::abs(res_ptr[i] - correct[i]), TOLERANCE);
    }
 
+}
+
+TEST_F(SofieAlpakaTest, Where)
+{
+    constexpr float TOLERANCE = 1e-5f;
+    // use same inputs as the CPU test
+    std::vector<float> input1 = {1, 2};
+    std::vector<float> input2 = {3, 4, 5, 6};
+    bool cond_cpu[] = {true, false, true};
+    // allocate buffer on host
+    auto input1_host = alpaka::allocBuf<float, Idx>(host, Ext1D::all(Idx{2}));
+    auto input2_host = alpaka::allocBuf<float, Idx>(host, Ext1D::all(Idx{4}));
+    auto cond_host = alpaka::allocBuf<bool, Idx>(host, Ext1D::all(Idx{3}));
+    float *input1_ptr = reinterpret_cast<float*>(alpaka::getPtrNative(input1_host));
+    float *input2_ptr = reinterpret_cast<float*>(alpaka::getPtrNative(input2_host));
+    bool *cond_ptr = reinterpret_cast<bool*>(alpaka::getPtrNative(cond_host));
+    // copy data to host buffer
+    for (Idx i = 0; i < 2; ++i) input1_ptr[i] = input1[i];
+    for (Idx i = 0; i < 4; ++i) input2_ptr[i] = input2[i];
+    for (Idx i = 0; i < 3; ++i) cond_ptr[i] = cond_cpu[i];
+    // allocate buffer on device
+    auto input1_device = alpaka::allocBuf<float, Idx>(device, Ext1D::all(Idx{2}));
+    auto input2_device = alpaka::allocBuf<float, Idx>(device, Ext1D::all(Idx{4}));
+    auto cond_device = alpaka::allocBuf<bool, Idx>(device, Ext1D::all(Idx{3}));
+    // copy from host to device
+    alpaka::memcpy(queue, input1_device, input1_host);
+    alpaka::memcpy(queue, input2_device, input2_host);
+    alpaka::memcpy(queue, cond_device, cond_host);
+    alpaka::wait(queue);
+    // allocate output buffer on host
+    auto output_host = alpaka::allocBuf<float, Idx>(host, Ext1D::all(Idx{6}));
+    
+    // run test on device
+    {
+       SOFIE_Where::Session<alpaka::TagGpuCudaRt> session("Where_FromONNX_GPU_ALPAKA.dat");
+       auto result = session.infer(input1_device, input2_device, cond_device);
+       alpaka::wait(queue);
+       cudaDeviceSynchronize();
+       alpaka::memcpy(queue, output_host, result);
+       alpaka::wait(queue);
+    }
+    // get test results
+    float* result_ptr = reinterpret_cast<float*>(alpaka::getPtrNative(output_host));
+    
+    // prepare expected outputs
+    std::vector<float> expected = {1, 2, 5, 6, 1, 2};
+    // verify test results
+    for (size_t i = 0; i < 6; ++i) {
+       EXPECT_LE(std::abs(result_ptr[i] - expected[i]), TOLERANCE);
+    }
 }
 
 TEST_F(SofieAlpakaTest, LinearWithSigmoid)
