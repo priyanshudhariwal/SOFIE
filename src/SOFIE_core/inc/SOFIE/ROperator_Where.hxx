@@ -6,6 +6,7 @@
 #include "SOFIE/RModel.hxx"
 
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 namespace SOFIE{
@@ -292,8 +293,26 @@ public:
       return SP + "WhereKernel whereKernel;\n";
    }
 
-   std::string Generate_GPU_ALPAKA(std::string /*operator name*/) override {
+   std::string Generate_GPU_ALPAKA(std::string opName) override {
+      if (fIsOutputConstant) return "";
 
+      opName = "op_" + opName;
+      if (fShapeY.empty()){
+         throw std::runtime_error("TMVA SOFIE Where operator to Generate without being initialised first");
+      }
+      std::stringstream out;
+
+      auto length = ConvertShapeToLength(fShapeY);
+      out <<"\n//----------"+opName+"_ALPAKA\n";
+      out << SP << "auto const elementsPerThread_"<<fNY<<" = Vec::all(static_cast<Idx>(1));\n";
+      out << SP << "auto const elementsPerGrid_"<<fNY<<" = Vec::all(Idx{"<< length << "});\n";
+      out << SP << "alpaka::KernelCfg<Acc> const kernelCfg_" << fNY << " = {elementsPerGrid_" << fNY << ", elementsPerThread_" << fNY << "};\n";
+      out << SP << "auto const workDiv_" << fNY << " = alpaka::getValidWorkDiv(kernelCfg_" << fNY << ", devAcc, whereKernel, alpaka::getPtrNative(deviceBuf_" << fNA
+         << "), alpaka::getPtrNative(deviceBuf_" << fNB << "), alpaka::getPtrNative(deviceBuf_"<< fNC << "), alpaka::getPtrNative(deviceBuf_" << fNY << "));\n";
+      out << SP << "alpaka::exec<Acc>(queue, workDiv_" << fNY
+         << ", whereKernel, alpaka::getPtrNative(deviceBuf_" << fNA
+         << "), alpaka::getPtrNative(deviceBuf_" << fNB << "), alpaka::getPtrNative(deviceBuf_" << fNC << "), alpaka::getPtrNative(deviceBuf_" << fNY << "));\n";
+      return out.str();
    }
 
 };
